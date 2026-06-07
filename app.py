@@ -23,39 +23,7 @@ from id_ocr import (
     process_id_card,
 )
 
-st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="centered")
-
-# ── 画面向きをランドスケープに強制（メタタグ + CSS） ──────────────
-st.markdown("""
-<meta name="viewport" content="width=device-width, initial-scale=1.0, orientation=landscape, maximum-scale=1.0, user-scalable=no">
-<style>
-    body, html {
-        overflow: hidden;
-        width: 100vw;
-        height: 100vh;
-    }
-    /* スマートフォンのみ強制ランドスケープ */
-    @media (max-width: 768px) {
-        html {
-            transform: rotate(0deg);
-        }
-        body {
-            width: 100vh;
-            height: 100vw;
-            transform: rotate(90deg) translateY(-100vh);
-            transform-origin: 0 0;
-            position: fixed;
-        }
-    }
-</style>
-<script>
-window.addEventListener('orientationchange', function() {
-    if (window.orientation !== 90 && window.orientation !== -90) {
-        document.documentElement.style.transform = 'rotate(90deg)';
-    }
-});
-</script>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="wide")
 
 # ── カメラキー：ページロードごとに新規生成 → 毎回アクセス許可を再確認 ──
 if "cam_key" not in st.session_state:

@@ -1,6 +1,7 @@
 streamlit>=1.35.0
 opencv-python-headless>=4.9.0
 pillow>=10.0.0
-pytesseract>=0.3.10
+paddleocr>=2.7.0.3
+paddlepaddle
 numpy>=1.26.0
 streamlit-js-eval>=0.1.9

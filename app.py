@@ -45,15 +45,16 @@ camera_img = st.camera_input(
     key=st.session_state["cam_key"],
 )
 
-    # OCRガイド枠をカメラプレビューにオーバーレイ
-    _ct = "driver_license"
-    _regions = DRIVER_LICENSE_REGIONS
-    _regions_js = json.dumps({
-        name: {"x": x, "y": y, "w": w, "h": h}
-        for name, (x, y, w, h) in _regions.items()
-    })
-    _colors_js = json.dumps({"氏名": "#44ff44", "生年月日": "#ff5555", "住所": "#55aaff"})
-    _mobile_js = "true" if is_mobile else "false"
+# OCRガイド枠をカメラプレビューにオーバーレイ
+_ct = "driver_license"
+_regions = DRIVER_LICENSE_REGIONS
+_regions_js = json.dumps({
+    name: {"x": x, "y": y, "w": w, "h": h}
+    for name, (x, y, w, h) in _regions.items()
+})
+_colors_js = json.dumps({"氏名": "#44ff44", "生年月日": "#ff5555", "住所": "#55aaff"})
+_mobile_js = "true" if is_mobile else "false"
+components.html(f"""
 <script>
 (function() {{
   const regions = {_regions_js};
@@ -199,10 +200,8 @@ if raw_input:
 
     # ── 座標調整モード ──────────────────────────────────
     with st.expander("🔧 座標調整モード（ずれている場合はここで調整）"):
-        ct_vis = "driver_license" if card_type == "auto" else card_type
-        default_regions = (
-            DRIVER_LICENSE_REGIONS if ct_vis == "driver_license" else MY_NUMBER_REGIONS
-        )
+        ct_vis = "driver_license"
+        default_regions = DRIVER_LICENSE_REGIONS
         colors = {"氏名": (0, 255, 0), "生年月日": (255, 0, 0), "住所": (0, 0, 255)}
 
         st.caption("スライダーを動かして枠の位置・サイズを調整してください。")
@@ -235,7 +234,7 @@ if raw_input:
 
         # コピー用コード表示
         st.markdown("**調整後の座標（`id_ocr.py` に貼り付けてください）**")
-        card_var = "DRIVER_LICENSE_REGIONS" if ct_vis == "driver_license" else "MY_NUMBER_REGIONS"
+        card_var = "DRIVER_LICENSE_REGIONS"
         code_lines = [f"{card_var} = {{"]
         for field, (nx, ny, nw, nh) in adjusted.items():
             code_lines.append(f'    "{field}": ({nx:.2f}, {ny:.2f}, {nw:.2f}, {nh:.2f}),')

@@ -25,18 +25,6 @@ from id_ocr import (
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="wide")
 
-# ── スマートフォンの向き変更を監視してセッションをリセット ──
-st.markdown("""
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<script>
-window.addEventListener('orientationchange', function() {
-    setTimeout(() => {
-        location.reload();
-    }, 500);
-});
-</script>
-""", unsafe_allow_html=True)
-
 # ── カメラキー：ページロードごとに新規生成 → 毎回アクセス許可を再確認 ──
 if "cam_key" not in st.session_state:
     st.session_state["cam_key"] = str(time.time())
@@ -45,12 +33,10 @@ if "cam_key" not in st.session_state:
 screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="sw")
 screen_height = streamlit_js_eval(js_expressions="window.innerHeight", key="sh")
 
-# 横向き判定：幅 > 高さ
-is_landscape = (
-    screen_width is not None and 
-    screen_height is not None and 
-    int(screen_width) > int(screen_height)
-)
+# 横向き判定：幅 > 高さ（デフォルトは False で安全側）
+is_landscape = False
+if screen_width is not None and screen_height is not None:
+    is_landscape = int(screen_width) > int(screen_height)
 
 st.title("📸 身分証 OCR")
 
@@ -178,7 +164,7 @@ if raw_input:
     if raw_input is camera_img and not is_landscape:
         w, h = img_pil.size
         if h > w:
-            img_pil = img_pil.rotate(-90, expand=True)
+            img_pil = img_pil.rotate(90, expand=True)
 
     # 回転ボタン（同じ画像が選択されている間、回転角度を保持）
     img_key = getattr(raw_input, "name", "") + str(getattr(raw_input, "size", ""))

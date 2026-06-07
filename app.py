@@ -36,10 +36,12 @@ col1, col2, col3 = st.columns([1, 1, 2])
 with col1:
     if st.button("📱 縦向き", help="スマートフォンの縦向きで使用します"):
         st.session_state["is_landscape"] = False
+        st.session_state["cam_key"] = str(time.time())  # カメラを再初期化
         st.rerun()
 with col2:
     if st.button("📱 横向き", help="スマートフォンの横向きで使用します"):
         st.session_state["is_landscape"] = True
+        st.session_state["cam_key"] = str(time.time())  # カメラを再初期化
         st.rerun()
 
 is_landscape = st.session_state.get("is_landscape", False)

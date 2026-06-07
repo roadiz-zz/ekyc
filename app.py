@@ -5,11 +5,13 @@
 import os
 import sys
 import tempfile
+import time
 
 import cv2
 import numpy as np
 import streamlit as st
 from PIL import Image, ImageOps
+from streamlit_js_eval import streamlit_js_eval
 
 # id_ocr.py と同じディレクトリに配置されている前提
 sys.path.insert(0, os.path.dirname(__file__))
@@ -20,6 +22,14 @@ from id_ocr import (
 )
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="centered")
+
+# ── カメラキー：ページロードごとに新規生成 → 毎回アクセス許可を再確認 ──
+if "cam_key" not in st.session_state:
+    st.session_state["cam_key"] = str(time.time())
+
+# ── デバイス判定（screen.width < 768 → スマホ） ──────────────
+screen_width = streamlit_js_eval(js_expressions="screen.width", key="sw")
+is_mobile = (screen_width is not None) and (int(screen_width) < 768)
 
 st.title("🪪 身分証明書 OCR")
 st.caption("運転免許証・マイナンバーカードから氏名・生年月日・住所を読み取ります")
@@ -41,7 +51,15 @@ card_type = card_type_map[card_type_label]
 tab_cam, tab_upload = st.tabs(["📷 カメラで撮影", "📁 ファイルをアップロード"])
 
 with tab_cam:
-    camera_img = st.camera_input("カメラで身分証を撮影")
+    col_btn, _ = st.columns([2, 5])
+    with col_btn:
+        if st.button("↺ カメラ再起動", help="カメラのアクセス許可を再確認します"):
+            st.session_state["cam_key"] = str(time.time())
+            st.rerun()
+    camera_img = st.camera_input(
+        "カメラで身分証を撮影",
+        key=st.session_state["cam_key"],
+    )
 
 with tab_upload:
     uploaded = st.file_uploader("身分証の画像をアップロード", type=["jpg", "jpeg", "png"])
@@ -51,6 +69,12 @@ raw_input = camera_img or uploaded
 
 if raw_input:
     img_pil = ImageOps.exif_transpose(Image.open(raw_input)).convert("RGB")
+
+    # スマホのカメラ撮影は縦長 → 90°回転して横長（OCR基準方向）に正規化
+    if raw_input is camera_img and is_mobile:
+        w, h = img_pil.size
+        if h > w:
+            img_pil = img_pil.rotate(-90, expand=True)
 
     # 回転ボタン（同じ画像が選択されている間、回転角度を保持）
     img_key = getattr(raw_input, "name", "") + str(getattr(raw_input, "size", ""))

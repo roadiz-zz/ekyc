@@ -2,6 +2,7 @@
 身分証OCR ウェブアプリ（Streamlit）
 """
 
+import json
 import os
 import sys
 import tempfile
@@ -10,6 +11,7 @@ import time
 import cv2
 import numpy as np
 import streamlit as st
+import streamlit.components.v1 as components
 from PIL import Image, ImageOps
 from streamlit_js_eval import streamlit_js_eval
 
@@ -60,6 +62,99 @@ with tab_cam:
         "カメラで身分証を撮影",
         key=st.session_state["cam_key"],
     )
+
+    # OCRガイド枠をカメラプレビューにオーバーレイ
+    _ct = card_type if card_type != "auto" else "driver_license"
+    _regions = DRIVER_LICENSE_REGIONS if _ct == "driver_license" else MY_NUMBER_REGIONS
+    _regions_js = json.dumps({
+        name: {"x": x, "y": y, "w": w, "h": h}
+        for name, (x, y, w, h) in _regions.items()
+    })
+    _colors_js = json.dumps({"氏名": "#44ff44", "生年月日": "#ff5555", "住所": "#55aaff"})
+    _mobile_js = "true" if is_mobile else "false"
+    components.html(f"""
+<script>
+(function() {{
+  const regions = {_regions_js};
+  const colors  = {_colors_js};
+  const isMobile = {_mobile_js};
+
+  function getVideo() {{
+    return window.parent.document.querySelector('[data-testid="stCameraInput"] video');
+  }}
+
+  function getOrCreateCanvas(video) {{
+    const doc = window.parent.document;
+    const parent = video.parentElement;
+    parent.style.position = 'relative';
+    let c = doc.getElementById('ocr-guide-canvas');
+    if (!c) {{
+      c = doc.createElement('canvas');
+      c.id = 'ocr-guide-canvas';
+      c.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;';
+      parent.appendChild(c);
+    }}
+    return c;
+  }}
+
+  function draw() {{
+    try {{
+      const video = getVideo();
+      if (!video || !video.videoWidth) return;
+      const canvas = getOrCreateCanvas(video);
+      const W = canvas.offsetWidth, H = canvas.offsetHeight;
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, W, H);
+
+      // 映像の実際の描画領域（レターボックス考慮）
+      const vAR = video.videoWidth / video.videoHeight;
+      const cAR = W / H;
+      let vx, vy, vw, vh;
+      if (vAR > cAR) {{ vw=W; vh=W/vAR; vx=0; vy=(H-vh)/2; }}
+      else            {{ vh=H; vw=H*vAR; vx=(W-vw)/2; vy=0; }}
+
+      // カード枠（点線・白）
+      const cardAR = 85.6/54;
+      let cw = vw*0.92, ch = cw/cardAR;
+      if (ch > vh*0.9) {{ ch=vh*0.9; cw=ch*cardAR; }}
+      const cx = vx+(vw-cw)/2, cy = vy+(vh-ch)/2;
+      ctx.strokeStyle='rgba(255,255,255,0.75)';
+      ctx.lineWidth=2; ctx.setLineDash([8,4]);
+      ctx.strokeRect(cx, cy, cw, ch);
+      ctx.setLineDash([]);
+
+      // OCR領域ボックス
+      for (const [name, r] of Object.entries(regions)) {{
+        let rx, ry, rw, rh;
+        if (isMobile) {{
+          // 縦撮影 → 横回転後の座標を逆変換してプレビューに表示
+          rx = cx + (1 - r.y - r.h) * cw;
+          ry = cy + r.x * ch;
+          rw = r.h * cw;
+          rh = r.w * ch;
+        }} else {{
+          rx = cx + r.x*cw; ry = cy + r.y*ch;
+          rw = r.w*cw;      rh = r.h*ch;
+        }}
+        ctx.strokeStyle = colors[name]||'#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(rx, ry, rw, rh);
+        ctx.font = 'bold 11px sans-serif';
+        const tw = ctx.measureText(name).width;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(rx, ry-16, tw+6, 16);
+        ctx.fillStyle = colors[name]||'#fff';
+        ctx.fillText(name, rx+3, ry-3);
+      }}
+    }} catch(e) {{}}
+  }}
+
+  function loop() {{ draw(); requestAnimationFrame(loop); }}
+  setTimeout(loop, 600);
+}})();
+</script>
+""", height=0)
 
 with tab_upload:
     uploaded = st.file_uploader("身分証の画像をアップロード", type=["jpg", "jpeg", "png"])

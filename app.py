@@ -21,6 +21,19 @@ from id_ocr import (
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="centered")
 
+# カメラプレビューを横向きに補正
+st.markdown("""
+<style>
+[data-testid="stCameraInput"] video {
+    transform: rotate(90deg);
+    max-height: 240px;
+    width: auto;
+    margin: 60px auto;
+    display: block;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🪪 身分証明書 OCR")
 st.caption("運転免許証・マイナンバーカードから氏名・生年月日・住所を読み取ります")
 
@@ -51,7 +64,25 @@ raw_input = camera_img or uploaded
 
 if raw_input:
     img_pil = ImageOps.exif_transpose(Image.open(raw_input)).convert("RGB")
-    st.image(img_pil, caption="アップロードされた画像", use_container_width=True)
+
+    # 回転ボタン（同じ画像が選択されている間、回転角度を保持）
+    img_key = getattr(raw_input, "name", "") + str(getattr(raw_input, "size", ""))
+    if st.session_state.get("_last_img_key") != img_key:
+        st.session_state["_rotation"] = 0
+        st.session_state["_last_img_key"] = img_key
+
+    col_img, col_rot = st.columns([5, 1])
+    with col_rot:
+        st.write("")
+        if st.button("↻ 回転", help="90°回転します"):
+            st.session_state["_rotation"] = (st.session_state.get("_rotation", 0) + 90) % 360
+
+    rotation = st.session_state.get("_rotation", 0)
+    if rotation:
+        img_pil = img_pil.rotate(-rotation, expand=True)
+
+    with col_img:
+        st.image(img_pil, caption="撮影・アップロードされた画像", use_container_width=True)
 
     # ── OCR実行 ────────────────────────────────────────
     if st.button("OCR実行", type="primary"):

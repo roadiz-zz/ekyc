@@ -37,15 +37,18 @@ html, body {
   position: fixed;
   overflow-y: auto;
 }
-/* カメラ枠を常に縦長に固定 */
+/* カメラ枠を幅100% + アスペクト比で高さ自動計算 */
+[data-testid="stCameraInputWebcamStyledBox"],
 [data-testid="stCameraInput"] {
+  width: 100% !important;
   aspect-ratio: 9 / 16 !important;
-  max-width: 100%;
   height: auto !important;
 }
+[data-testid="stCameraInputWebcamStyledBox"] video,
 [data-testid="stCameraInput"] video {
-  aspect-ratio: 9 / 16 !important;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 </style>
 """, height=0)

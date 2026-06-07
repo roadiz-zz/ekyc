@@ -36,11 +36,20 @@ card_type_map = {
 }
 card_type = card_type_map[card_type_label]
 
-# ── 画像アップロード ────────────────────────────────────
-uploaded = st.file_uploader("身分証の画像をアップロード", type=["jpg", "jpeg", "png"])
+# ── 画像入力（カメラ / アップロード） ────────────────────
+tab_cam, tab_upload = st.tabs(["📷 カメラで撮影", "📁 ファイルをアップロード"])
 
-if uploaded:
-    img_pil = Image.open(uploaded).convert("RGB")
+with tab_cam:
+    camera_img = st.camera_input("カメラで身分証を撮影")
+
+with tab_upload:
+    uploaded = st.file_uploader("身分証の画像をアップロード", type=["jpg", "jpeg", "png"])
+
+# どちらかの入力を使用
+raw_input = camera_img or uploaded
+
+if raw_input:
+    img_pil = Image.open(raw_input).convert("RGB")
     st.image(img_pil, caption="アップロードされた画像", use_container_width=True)
 
     # ── OCR実行 ────────────────────────────────────────

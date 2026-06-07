@@ -25,25 +25,37 @@ from id_ocr import (
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="centered")
 
-# ── 画面向きをランドスケープにロック ──────────────────────────────
-components.html("""
-<script>
-(function() {
-  // 画面向きをランドスケープにロック（iOS/Android対応）
-  if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock("landscape").catch(e => {
-      console.log("向きロック失敗（許可が必要な場合があります）:", e);
-    });
-  }
-  // フォールバック：JavaScriptのみで対応不可な場合のメッセージ
-  window.addEventListener("orientationchange", function() {
-    if (Math.abs(window.orientation) === 90) {
-      console.log("✅ ランドスケープ方向で使用してください");
+# ── 画面向きをランドスケープに強制（メタタグ + CSS） ──────────────
+st.markdown("""
+<meta name="viewport" content="width=device-width, initial-scale=1.0, orientation=landscape, maximum-scale=1.0, user-scalable=no">
+<style>
+    body, html {
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
     }
-  });
-})();
+    /* スマートフォンのみ強制ランドスケープ */
+    @media (max-width: 768px) {
+        html {
+            transform: rotate(0deg);
+        }
+        body {
+            width: 100vh;
+            height: 100vw;
+            transform: rotate(90deg) translateY(-100vh);
+            transform-origin: 0 0;
+            position: fixed;
+        }
+    }
+</style>
+<script>
+window.addEventListener('orientationchange', function() {
+    if (window.orientation !== 90 && window.orientation !== -90) {
+        document.documentElement.style.transform = 'rotate(90deg)';
+    }
+});
 </script>
-""", height=0)
+""", unsafe_allow_html=True)
 
 # ── カメラキー：ページロードごとに新規生成 → 毎回アクセス許可を再確認 ──
 if "cam_key" not in st.session_state:

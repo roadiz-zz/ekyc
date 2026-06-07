@@ -41,7 +41,6 @@ card_type = card_type_map[card_type_label]
 tab_cam, tab_upload = st.tabs(["📷 カメラで撮影", "📁 ファイルをアップロード"])
 
 with tab_cam:
-    st.caption("📌 プレビューが縦向きでも、撮影後に自動で横向きに補正します。")
     camera_img = st.camera_input("カメラで身分証を撮影")
 
 with tab_upload:
@@ -52,12 +51,6 @@ raw_input = camera_img or uploaded
 
 if raw_input:
     img_pil = ImageOps.exif_transpose(Image.open(raw_input)).convert("RGB")
-
-    # カメラ撮影の場合、縦長ならば自動で横向きに回転
-    if raw_input is camera_img:
-        w, h = img_pil.size
-        if h > w:
-            img_pil = img_pil.rotate(-90, expand=True)
 
     # 回転ボタン（同じ画像が選択されている間、回転角度を保持）
     img_key = getattr(raw_input, "name", "") + str(getattr(raw_input, "size", ""))

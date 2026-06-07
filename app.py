@@ -9,7 +9,7 @@ import tempfile
 import cv2
 import numpy as np
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageOps
 
 # id_ocr.py と同じディレクトリに配置されている前提
 sys.path.insert(0, os.path.dirname(__file__))
@@ -50,7 +50,7 @@ with tab_upload:
 raw_input = camera_img or uploaded
 
 if raw_input:
-    img_pil = Image.open(raw_input).convert("RGB")
+    img_pil = ImageOps.exif_transpose(Image.open(raw_input)).convert("RGB")
     st.image(img_pil, caption="アップロードされた画像", use_container_width=True)
 
     # ── OCR実行 ────────────────────────────────────────

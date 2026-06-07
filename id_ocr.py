@@ -6,11 +6,14 @@
 
 import cv2
 import numpy as np
-import pytesseract
+from paddleocr import PaddleOCR
 from PIL import Image
 import re
 import sys
 from pathlib import Path
+
+# PaddleOCR初期化（グローバル）
+_paddle_ocr = PaddleOCR(use_textline_orientation=True, lang='japan')
 
 
 # =====================================================================
@@ -77,13 +80,14 @@ def extract_region(img: np.ndarray, region: tuple) -> np.ndarray:
 # OCR実行
 # =====================================================================
 
-TESSERACT_CONFIG = "--oem 3 --psm 6 -l jpn"
-
 def ocr_region(img_region: np.ndarray) -> str:
-    """領域画像にTesseract OCRをかける"""
-    pil_img = Image.fromarray(img_region)
-    text = pytesseract.image_to_string(pil_img, config=TESSERACT_CONFIG)
-    return text.strip()
+    """領域画像にPaddleOCRをかける"""
+    results = _paddle_ocr.ocr(img_region, cls=True)
+    if results and results[0]:
+        # 各行のテキストを改行で結合
+        text = '\n'.join([line[1][0] for line in results[0]])
+        return text.strip()
+    return ""
 
 
 # =====================================================================
@@ -142,9 +146,8 @@ def detect_card_type(img: np.ndarray) -> str:
     h, w = img.shape[:2]
     # カード全体をざっくりOCRしてキーワード検索
     small = cv2.resize(img, (800, int(800 * h / w)))
-    gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-    pil_img = Image.fromarray(gray)
-    full_text = pytesseract.image_to_string(pil_img, config="--oem 3 --psm 3 -l jpn")
+    ocr_results = _paddle_ocr.ocr(small, cls=True)
+    full_text = '\n'.join([line[1][0] for line in ocr_results[0]]) if ocr_results and ocr_results[0] else ""
 
     if "免許" in full_text or "運転" in full_text:
         return "driver_license"

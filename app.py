@@ -13,7 +13,6 @@ import numpy as np
 import streamlit as st
 import streamlit.components.v1 as components
 from PIL import Image, ImageOps
-from streamlit_js_eval import streamlit_js_eval
 
 # id_ocr.py と同じディレクトリに配置されている前提
 sys.path.insert(0, os.path.dirname(__file__))
@@ -29,30 +28,23 @@ st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="wide")
 if "cam_key" not in st.session_state:
     st.session_state["cam_key"] = str(time.time())
 
-if "is_landscape" not in st.session_state:
-    st.session_state["is_landscape"] = False
-
-# ── デバイス判定（固定 key で一度だけ取得してセッションに保存）──
-screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="sw_fixed")
-screen_height = streamlit_js_eval(js_expressions="window.innerHeight", key="sh_fixed")
-
-if screen_width is not None and screen_height is not None:
-    st.session_state["is_landscape"] = int(screen_width) > int(screen_height)
-
-is_landscape = st.session_state["is_landscape"]
-
 st.title("📸 身分証 OCR")
 
-# ── スマートフォン向き手動調整 ──────────────────────────────────
-col1, col2, col3 = st.columns([2, 1, 2])
-with col2:
-    if st.button("🔄 向き更新", help="スマートフォンを横に回転した後に押してください"):
-        # session_state をリセットして再判定
+# ── 画面向きの選択（手動） ──────────────────────────────────
+st.markdown("### 📱 画面向きを選択してください")
+col1, col2, col3 = st.columns([1, 1, 2])
+with col1:
+    if st.button("📱 縦向き", help="スマートフォンの縦向きで使用します"):
         st.session_state["is_landscape"] = False
         st.rerun()
+with col2:
+    if st.button("📱 横向き", help="スマートフォンの横向きで使用します"):
+        st.session_state["is_landscape"] = True
+        st.rerun()
 
+is_landscape = st.session_state.get("is_landscape", False)
 landscape_indicator = "📱 横向き" if is_landscape else "📱 縦向き"
-st.caption(f"現在: {landscape_indicator}")
+st.caption(f"現在の設定: {landscape_indicator}")
 
 # カード種別は運転免許証に固定
 card_type = "driver_license"

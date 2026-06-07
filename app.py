@@ -24,9 +24,9 @@ from id_ocr import (
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="wide")
 
-# ── 自動向き対応のための CSS + JavaScript ────────────────────────
+# ── ページを縦向き固定 + カメラ枠を常に縦長にする ────────────────────────
 components.html("""
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, orientation=portrait">
 <style>
 html, body {
   width: 100%;
@@ -34,41 +34,20 @@ html, body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  position: fixed;
+  overflow-y: auto;
 }
-/* スマートフォン横向き対応 */
-@media (orientation: landscape) {
-  body { transform: rotate(0deg); }
+/* カメラ枠を常に縦長に固定 */
+[data-testid="stCameraInput"] {
+  aspect-ratio: 9 / 16 !important;
+  max-width: 100%;
+  height: auto !important;
 }
-@media (orientation: portrait) {
-  body { transform: rotate(0deg); }
+[data-testid="stCameraInput"] video {
+  aspect-ratio: 9 / 16 !important;
+  object-fit: contain;
 }
 </style>
-<script>
-let lastOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
-let lastWidth = window.innerWidth;
-let lastHeight = window.innerHeight;
-
-function checkOrientationChange() {
-  const currentOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
-  const currentWidth = window.innerWidth;
-  const currentHeight = window.innerHeight;
-  
-  if (lastOrientation !== currentOrientation || 
-      Math.abs(lastWidth - currentWidth) > 50 ||
-      Math.abs(lastHeight - currentHeight) > 50) {
-    console.log(`Orientation changed: ${lastOrientation} → ${currentOrientation} (${currentWidth}x${currentHeight})`);
-    lastOrientation = currentOrientation;
-    lastWidth = currentWidth;
-    lastHeight = currentHeight;
-    // ページのレイアウト再計算を促す（CSS が反応する）
-    document.documentElement.style.fontSize = (Math.random() * 0.0001) + '16px';
-  }
-}
-
-window.addEventListener('orientationchange', checkOrientationChange);
-window.addEventListener('resize', checkOrientationChange);
-setInterval(checkOrientationChange, 500);
-</script>
 """, height=0)
 
 # ── カメラキー：ページロードごとに新規生成 → 毎回アクセス許可を再確認 ──
@@ -85,7 +64,8 @@ is_landscape = st.session_state.get("is_landscape", False)
 card_type = "driver_license"
 
 # ── カメラ撮影 ────────────────────────────────────────
-st.markdown("### 枠に合わせて撮影してください")
+st.markdown("### 📱 スマートフォンを横にして撮影してください")
+st.info("💡 ページは常に縦向きです。スマートフォン本体を横に傾けてカメラを使用してください。")
 camera_img = st.camera_input(
     "カメラで身分証を撮影",
     key=st.session_state["cam_key"],
@@ -99,7 +79,7 @@ _regions_js = json.dumps({
     for name, (x, y, w, h) in _regions.items()
 })
 _colors_js = json.dumps({"氏名": "#44ff44", "生年月日": "#ff5555", "住所": "#55aaff"})
-_landscape_js = "true" if is_landscape else "false"
+_landscape_js = "false"  # 常に縦向き枠を表示
 components.html(f"""
 <script>
 (function() {{

@@ -29,18 +29,30 @@ st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="wide")
 if "cam_key" not in st.session_state:
     st.session_state["cam_key"] = str(time.time())
 
-# ── デバイス判定（毎回新しく計算）──────────────────────────────────
-# key に時刻を含めることで、毎回新しく値を取得（キャッシュ回避）
-_time_key = int(time.time() * 1000) // 500  # 500msごとに異なる key
-screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key=f"sw_{_time_key}")
-screen_height = streamlit_js_eval(js_expressions="window.innerHeight", key=f"sh_{_time_key}")
+if "is_landscape" not in st.session_state:
+    st.session_state["is_landscape"] = False
 
-# 横向き判定：幅 > 高さ（デフォルトは False で安全側）
-is_landscape = False
+# ── デバイス判定（固定 key で一度だけ取得してセッションに保存）──
+screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="sw_fixed")
+screen_height = streamlit_js_eval(js_expressions="window.innerHeight", key="sh_fixed")
+
 if screen_width is not None and screen_height is not None:
-    is_landscape = int(screen_width) > int(screen_height)
+    st.session_state["is_landscape"] = int(screen_width) > int(screen_height)
+
+is_landscape = st.session_state["is_landscape"]
 
 st.title("📸 身分証 OCR")
+
+# ── スマートフォン向き手動調整 ──────────────────────────────────
+col1, col2, col3 = st.columns([2, 1, 2])
+with col2:
+    if st.button("🔄 向き更新", help="スマートフォンを横に回転した後に押してください"):
+        # session_state をリセットして再判定
+        st.session_state["is_landscape"] = False
+        st.rerun()
+
+landscape_indicator = "📱 横向き" if is_landscape else "📱 縦向き"
+st.caption(f"現在: {landscape_indicator}")
 
 # カード種別は運転免許証に固定
 card_type = "driver_license"

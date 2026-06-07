@@ -25,23 +25,32 @@ from id_ocr import (
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="wide")
 
-# ── スマートフォンの向き変更を監視してページをリロード ──
+# ── スマートフォンの向き変更を監視してセッションをリセット ──
 st.markdown("""
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
 window.addEventListener('orientationchange', function() {
     setTimeout(() => {
         location.reload();
-    }, 300);
+    }, 500);
 });
 </script>
 """, unsafe_allow_html=True)
+
+# ── カメラキー：ページロードごとに新規生成 → 毎回アクセス許可を再確認 ──
 if "cam_key" not in st.session_state:
     st.session_state["cam_key"] = str(time.time())
 
-# ── デバイス判定（screen.width < 768 → スマホ） ──────────────
-screen_width = streamlit_js_eval(js_expressions="screen.width", key="sw")
-is_mobile = (screen_width is not None) and (int(screen_width) < 768)
+# ── デバイス判定（毎回新しく計算）──────────────────────────────────
+screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="sw")
+screen_height = streamlit_js_eval(js_expressions="window.innerHeight", key="sh")
+
+# 横向き判定：幅 > 高さ
+is_landscape = (
+    screen_width is not None and 
+    screen_height is not None and 
+    int(screen_width) > int(screen_height)
+)
 
 st.title("📸 身分証 OCR")
 
@@ -63,13 +72,13 @@ _regions_js = json.dumps({
     for name, (x, y, w, h) in _regions.items()
 })
 _colors_js = json.dumps({"氏名": "#44ff44", "生年月日": "#ff5555", "住所": "#55aaff"})
-_mobile_js = "true" if is_mobile else "false"
+_landscape_js = "true" if is_landscape else "false"
 components.html(f"""
 <script>
 (function() {{
   const regions = {_regions_js};
   const colors  = {_colors_js};
-  const isMobile = {_mobile_js};
+  const isLandscape = {_landscape_js};
 
   function getVideo() {{
     return window.parent.document.querySelector('[data-testid="stCameraInput"] video');
@@ -110,7 +119,7 @@ components.html(f"""
       const cardAR = 85.6/54;
       let cx, cy, cw, ch;
 
-      if (isMobile) {{
+      if (!isLandscape) {{
         // スマホ（縦）: カメラの縦比率に合わせた縦長ガイド枠のみ表示
         ch = vh * 0.88;
         cw = ch / cardAR;
@@ -166,7 +175,7 @@ if raw_input:
     img_pil = ImageOps.exif_transpose(Image.open(raw_input)).convert("RGB")
 
     # スマホのカメラ撮影は縦長 → 90°回転して横長（OCR基準方向）に正規化
-    if raw_input is camera_img and is_mobile:
+    if raw_input is camera_img and not is_landscape:
         w, h = img_pil.size
         if h > w:
             img_pil = img_pil.rotate(-90, expand=True)

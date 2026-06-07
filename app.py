@@ -24,29 +24,62 @@ from id_ocr import (
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="wide")
 
+# ── 自動向き対応のための CSS + JavaScript ────────────────────────
+components.html("""
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+/* スマートフォン横向き対応 */
+@media (orientation: landscape) {
+  body { transform: rotate(0deg); }
+}
+@media (orientation: portrait) {
+  body { transform: rotate(0deg); }
+}
+</style>
+<script>
+let lastOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+let lastWidth = window.innerWidth;
+let lastHeight = window.innerHeight;
+
+function checkOrientationChange() {
+  const currentOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+  const currentWidth = window.innerWidth;
+  const currentHeight = window.innerHeight;
+  
+  if (lastOrientation !== currentOrientation || 
+      Math.abs(lastWidth - currentWidth) > 50 ||
+      Math.abs(lastHeight - currentHeight) > 50) {
+    console.log(`Orientation changed: ${lastOrientation} → ${currentOrientation} (${currentWidth}x${currentHeight})`);
+    lastOrientation = currentOrientation;
+    lastWidth = currentWidth;
+    lastHeight = currentHeight;
+    // ページのレイアウト再計算を促す（CSS が反応する）
+    document.documentElement.style.fontSize = (Math.random() * 0.0001) + '16px';
+  }
+}
+
+window.addEventListener('orientationchange', checkOrientationChange);
+window.addEventListener('resize', checkOrientationChange);
+setInterval(checkOrientationChange, 500);
+</script>
+""", height=0)
+
 # ── カメラキー：ページロードごとに新規生成 → 毎回アクセス許可を再確認 ──
 if "cam_key" not in st.session_state:
     st.session_state["cam_key"] = str(time.time())
 
 st.title("📸 身分証 OCR")
 
-# ── 画面向きの選択（手動） ──────────────────────────────────
-st.markdown("### 📱 画面向きを選択してください")
-col1, col2, col3 = st.columns([1, 1, 2])
-with col1:
-    if st.button("📱 縦向き", help="スマートフォンの縦向きで使用します"):
-        st.session_state["is_landscape"] = False
-        st.session_state["cam_key"] = str(time.time())  # カメラを再初期化
-        st.rerun()
-with col2:
-    if st.button("📱 横向き", help="スマートフォンの横向きで使用します"):
-        st.session_state["is_landscape"] = True
-        st.session_state["cam_key"] = str(time.time())  # カメラを再初期化
-        st.rerun()
-
+# ── 画面向きを自動判定（初期値は縦向き）
+# JavaScript で向き変更を監視して、session state を更新する
 is_landscape = st.session_state.get("is_landscape", False)
-landscape_indicator = "📱 横向き" if is_landscape else "📱 縦向き"
-st.caption(f"現在の設定: {landscape_indicator}")
 
 # カード種別は運転免許証に固定
 card_type = "driver_license"

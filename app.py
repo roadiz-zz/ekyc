@@ -33,46 +33,27 @@ if "cam_key" not in st.session_state:
 screen_width = streamlit_js_eval(js_expressions="screen.width", key="sw")
 is_mobile = (screen_width is not None) and (int(screen_width) < 768)
 
-st.title("🪪 身分証明書 OCR")
-st.caption("運転免許証・マイナンバーカードから氏名・生年月日・住所を読み取ります")
+st.title("📸 身分証 OCR")
 
-# ── カード種別選択 ──────────────────────────────────────
-card_type_label = st.radio(
-    "カード種別",
-    ["自動判定", "運転免許証", "マイナンバーカード"],
-    horizontal=True,
+# カード種別は運転免許証に固定
+card_type = "driver_license"
+
+# ── カメラ撮影 ────────────────────────────────────────
+st.markdown("### 枠に合わせて撮影してください")
+camera_img = st.camera_input(
+    "カメラで身分証を撮影",
+    key=st.session_state["cam_key"],
 )
-card_type_map = {
-    "自動判定": "auto",
-    "運転免許証": "driver_license",
-    "マイナンバーカード": "my_number",
-}
-card_type = card_type_map[card_type_label]
-
-# ── 画像入力（カメラ / アップロード） ────────────────────
-tab_cam, tab_upload = st.tabs(["📷 カメラで撮影", "📁 ファイルをアップロード"])
-
-with tab_cam:
-    col_btn, _ = st.columns([2, 5])
-    with col_btn:
-        if st.button("↺ カメラ再起動", help="カメラのアクセス許可を再確認します"):
-            st.session_state["cam_key"] = str(time.time())
-            st.rerun()
-    camera_img = st.camera_input(
-        "カメラで身分証を撮影",
-        key=st.session_state["cam_key"],
-    )
 
     # OCRガイド枠をカメラプレビューにオーバーレイ
-    _ct = card_type if card_type != "auto" else "driver_license"
-    _regions = DRIVER_LICENSE_REGIONS if _ct == "driver_license" else MY_NUMBER_REGIONS
+    _ct = "driver_license"
+    _regions = DRIVER_LICENSE_REGIONS
     _regions_js = json.dumps({
         name: {"x": x, "y": y, "w": w, "h": h}
         for name, (x, y, w, h) in _regions.items()
     })
     _colors_js = json.dumps({"氏名": "#44ff44", "生年月日": "#ff5555", "住所": "#55aaff"})
     _mobile_js = "true" if is_mobile else "false"
-    components.html(f"""
 <script>
 (function() {{
   const regions = {_regions_js};
@@ -167,11 +148,8 @@ with tab_cam:
 </script>
 """, height=0)
 
-with tab_upload:
-    uploaded = st.file_uploader("身分証の画像をアップロード", type=["jpg", "jpeg", "png"])
-
 # どちらかの入力を使用
-raw_input = camera_img or uploaded
+raw_input = camera_img
 
 if raw_input:
     img_pil = ImageOps.exif_transpose(Image.open(raw_input)).convert("RGB")
@@ -263,6 +241,3 @@ if raw_input:
             code_lines.append(f'    "{field}": ({nx:.2f}, {ny:.2f}, {nw:.2f}, {nh:.2f}),')
         code_lines.append("}")
         st.code("\n".join(code_lines), language="python")
-
-st.divider()
-st.caption("⚠️ アップロードされた画像はサーバーに保存されません。")

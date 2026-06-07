@@ -21,19 +21,6 @@ from id_ocr import (
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="centered")
 
-# カメラプレビューを横向きに補正
-st.markdown("""
-<style>
-[data-testid="stCameraInput"] video {
-    transform: rotate(90deg);
-    max-height: 240px;
-    width: auto;
-    margin: 60px auto;
-    display: block;
-}
-</style>
-""", unsafe_allow_html=True)
-
 st.title("🪪 身分証明書 OCR")
 st.caption("運転免許証・マイナンバーカードから氏名・生年月日・住所を読み取ります")
 

@@ -6,14 +6,14 @@
 
 import cv2
 import numpy as np
-from paddleocr import PaddleOCR
+import easyocr
 from PIL import Image
 import re
 import sys
 from pathlib import Path
 
-# PaddleOCR初期化（グローバル）
-_paddle_ocr = PaddleOCR(use_textline_orientation=True, lang='japan')
+# EasyOCR初期化（グローバル）
+_reader = easyocr.Reader(['ja'], gpu=False)
 
 
 # =====================================================================
@@ -81,11 +81,10 @@ def extract_region(img: np.ndarray, region: tuple) -> np.ndarray:
 # =====================================================================
 
 def ocr_region(img_region: np.ndarray) -> str:
-    """領域画像にPaddleOCRをかける"""
-    results = _paddle_ocr.ocr(img_region, cls=True)
-    if results and results[0]:
-        # 各行のテキストを改行で結合
-        text = '\n'.join([line[1][0] for line in results[0]])
+    """領域画像にEasyOCRをかける"""
+    results = _reader.readtext(img_region, detail=0)
+    if results:
+        text = '\n'.join(results)
         return text.strip()
     return ""
 
@@ -146,8 +145,8 @@ def detect_card_type(img: np.ndarray) -> str:
     h, w = img.shape[:2]
     # カード全体をざっくりOCRしてキーワード検索
     small = cv2.resize(img, (800, int(800 * h / w)))
-    ocr_results = _paddle_ocr.ocr(small, cls=True)
-    full_text = '\n'.join([line[1][0] for line in ocr_results[0]]) if ocr_results and ocr_results[0] else ""
+    ocr_results = _reader.readtext(small, detail=0)
+    full_text = '\n'.join(ocr_results) if ocr_results else ""
 
     if "免許" in full_text or "運転" in full_text:
         return "driver_license"

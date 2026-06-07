@@ -25,7 +25,17 @@ from id_ocr import (
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="wide")
 
-# ── カメラキー：ページロードごとに新規生成 → 毎回アクセス許可を再確認 ──
+# ── スマートフォンの向き変更を監視してページをリロード ──
+st.markdown("""
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+window.addEventListener('orientationchange', function() {
+    setTimeout(() => {
+        location.reload();
+    }, 300);
+});
+</script>
+""", unsafe_allow_html=True)
 if "cam_key" not in st.session_state:
     st.session_state["cam_key"] = str(time.time())
 

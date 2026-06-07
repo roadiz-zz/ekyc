@@ -25,6 +25,26 @@ from id_ocr import (
 
 st.set_page_config(page_title="身分証OCR", page_icon="🪪", layout="centered")
 
+# ── 画面向きをランドスケープにロック ──────────────────────────────
+components.html("""
+<script>
+(function() {
+  // 画面向きをランドスケープにロック（iOS/Android対応）
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock("landscape").catch(e => {
+      console.log("向きロック失敗（許可が必要な場合があります）:", e);
+    });
+  }
+  // フォールバック：JavaScriptのみで対応不可な場合のメッセージ
+  window.addEventListener("orientationchange", function() {
+    if (Math.abs(window.orientation) === 90) {
+      console.log("✅ ランドスケープ方向で使用してください");
+    }
+  });
+})();
+</script>
+""", height=0)
+
 # ── カメラキー：ページロードごとに新規生成 → 毎回アクセス許可を再確認 ──
 if "cam_key" not in st.session_state:
     st.session_state["cam_key"] = str(time.time())

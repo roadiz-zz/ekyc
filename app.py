@@ -114,38 +114,49 @@ with tab_cam:
       if (vAR > cAR) {{ vw=W; vh=W/vAR; vx=0; vy=(H-vh)/2; }}
       else            {{ vh=H; vw=H*vAR; vx=(W-vw)/2; vy=0; }}
 
-      // カード枠（点線・白）
+      // カード枠とOCR枠の描画
       const cardAR = 85.6/54;
-      let cw = vw*0.92, ch = cw/cardAR;
-      if (ch > vh*0.9) {{ ch=vh*0.9; cw=ch*cardAR; }}
-      const cx = vx+(vw-cw)/2, cy = vy+(vh-ch)/2;
-      ctx.strokeStyle='rgba(255,255,255,0.75)';
-      ctx.lineWidth=2; ctx.setLineDash([8,4]);
-      ctx.strokeRect(cx, cy, cw, ch);
-      ctx.setLineDash([]);
+      let cx, cy, cw, ch;
 
-      // OCR領域ボックス
-      for (const [name, r] of Object.entries(regions)) {{
-        let rx, ry, rw, rh;
-        if (isMobile) {{
-          // 縦撮影 → 横回転後の座標を逆変換してプレビューに表示
-          rx = cx + (1 - r.y - r.h) * cw;
-          ry = cy + r.x * ch;
-          rw = r.h * cw;
-          rh = r.w * ch;
-        }} else {{
-          rx = cx + r.x*cw; ry = cy + r.y*ch;
-          rw = r.w*cw;      rh = r.h*ch;
+      if (isMobile) {{
+        // スマホ（縦）: カメラの縦比率に合わせた縦長ガイド枠のみ表示
+        ch = vh * 0.88;
+        cw = ch / cardAR;
+        if (cw > vw * 0.9) {{ cw = vw * 0.9; ch = cw * cardAR; }}
+        cx = vx + (vw - cw) / 2;
+        cy = vy + (vh - ch) / 2;
+        ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+        ctx.lineWidth = 2; ctx.setLineDash([8,4]);
+        ctx.strokeRect(cx, cy, cw, ch);
+        ctx.setLineDash([]);
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.textAlign = 'center';
+        ctx.fillText('カードをここに合わせてください', cx + cw/2, cy + ch + 18);
+        ctx.textAlign = 'left';
+      }} else {{
+        // PC（横）: ランドスケープ枠 + OCR領域ボックス
+        cw = vw*0.92; ch = cw/cardAR;
+        if (ch > vh*0.9) {{ ch=vh*0.9; cw=ch*cardAR; }}
+        cx = vx+(vw-cw)/2; cy = vy+(vh-ch)/2;
+        ctx.strokeStyle='rgba(255,255,255,0.75)';
+        ctx.lineWidth=2; ctx.setLineDash([8,4]);
+        ctx.strokeRect(cx, cy, cw, ch);
+        ctx.setLineDash([]);
+
+        for (const [name, r] of Object.entries(regions)) {{
+          const rx = cx + r.x*cw, ry = cy + r.y*ch;
+          const rw = r.w*cw,      rh = r.h*ch;
+          ctx.strokeStyle = colors[name]||'#fff';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(rx, ry, rw, rh);
+          ctx.font = 'bold 11px sans-serif';
+          const tw = ctx.measureText(name).width;
+          ctx.fillStyle = 'rgba(0,0,0,0.55)';
+          ctx.fillRect(rx, ry-16, tw+6, 16);
+          ctx.fillStyle = colors[name]||'#fff';
+          ctx.fillText(name, rx+3, ry-3);
         }}
-        ctx.strokeStyle = colors[name]||'#fff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(rx, ry, rw, rh);
-        ctx.font = 'bold 11px sans-serif';
-        const tw = ctx.measureText(name).width;
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fillRect(rx, ry-16, tw+6, 16);
-        ctx.fillStyle = colors[name]||'#fff';
-        ctx.fillText(name, rx+3, ry-3);
       }}
     }} catch(e) {{}}
   }}

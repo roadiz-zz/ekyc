@@ -30,8 +30,10 @@ if "cam_key" not in st.session_state:
     st.session_state["cam_key"] = str(time.time())
 
 # ── デバイス判定（毎回新しく計算）──────────────────────────────────
-screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="sw")
-screen_height = streamlit_js_eval(js_expressions="window.innerHeight", key="sh")
+# key に時刻を含めることで、毎回新しく値を取得（キャッシュ回避）
+_time_key = int(time.time() * 1000) // 500  # 500msごとに異なる key
+screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key=f"sw_{_time_key}")
+screen_height = streamlit_js_eval(js_expressions="window.innerHeight", key=f"sh_{_time_key}")
 
 # 横向き判定：幅 > 高さ（デフォルトは False で安全側）
 is_landscape = False
